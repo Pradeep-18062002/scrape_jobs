@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime , timedelta
 from dateutil.relativedelta import relativedelta
-
+import time
 def get_total_pages(soup)->int:
   page_numbers=[]
   page_spans = soup.select("nav.pagination span.page")
@@ -40,42 +40,43 @@ def get_team_work_online_jobs(filter_days:int):
     except requests.RequestException as e:
       print(f"Failed to fetch page {page}: {e}")
       break
-  
+
+    
   
     job_cards = soup.select("div.browse-jobs-card div.browse-jobs-card__content")
 
     for card in job_cards:
       try:
         time_date= card.select("div.browse-jobs-card__scoreboard")
-        time=""
+        time_taken=""
         for time_digit in time_date:
           digit = time_digit.getText(strip=True)
-          time+=digit
-        if '+' in time:
+          time_taken+=digit
+        if '+' in time_taken:
           continue
         try:
-          time = int(time)
+          time_taken = int(time_taken)
         except ValueError:
-          time=None 
+          time_taken=None 
         unit_tag = card.select_one("div.trending__scoreboard--time")
         unit = unit_tag.get_text(strip = True).lower() if unit_tag else ""
 
         
 
-        if time is not None:
+        if time_taken is not None:
           if "day" in unit:
-            posted_date = today - timedelta(days=time)
+            posted_date = today - timedelta(days=time_taken)
           elif "hour" in unit:
-            posted_date = today - timedelta(hours=time)
+            posted_date = today - timedelta(hours=time_taken)
           elif "month" in unit:
-            posted_date = today - relativedelta(months=time)
+            posted_date = today - relativedelta(months=time_taken)
           else:
             continue
 
           if posted_date <cutoff_date:
             return scraped_jobs
           
-          posted_time = f"{time} {unit}"
+          posted_time = f"{time_taken} {unit}"
           relative_link_tag = card.select_one("a.browse-jobs-card__content--title")
           relative_link = relative_link_tag.get("href").strip()
           base_link = "https://www.teamworkonline.com"
@@ -90,10 +91,10 @@ def get_team_work_online_jobs(filter_days:int):
           scraped_jobs.append({
                           "title": job_title,
                           "company": job_company,
-                          "location": job_location,
-                          "posted_time": posted_time,
-                          "posted_date": posted_date.strftime("%B %d, %Y"),
+                          "region": job_location,
+                          #"posted_time": posted_time,
                           "link": job_link,
+                          "posted": posted_date.strftime("%m/%d/%Y"),
                       })
           
       except Exception as e:
